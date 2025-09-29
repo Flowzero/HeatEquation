@@ -54,13 +54,12 @@ public class ReversedSheme : BaseSolver
         float[] newTemperature = new float[nPoints];
         float k = alpha * dt / (dx * dx);
 
-        // Используем метод прогонки (Thomas algorithm) для решения системы
-        float[] a = new float[nPoints]; // нижняя диагональ
-        float[] b = new float[nPoints]; // главная диагональ  
-        float[] c = new float[nPoints]; // верхняя диагональ
-        float[] d = new float[nPoints]; // правые части
+        float[] a = new float[nPoints]; // 
+        float[] b = new float[nPoints]; //   
+        float[] c = new float[nPoints]; // 
+        float[] d = new float[nPoints]; // 
 
-        // Заполняем матрицу коэффициентов для неявной схемы
+        // 
         for (int i = 1; i < nPoints - 1; i++)
         {
             a[i] = -k;
@@ -69,7 +68,7 @@ public class ReversedSheme : BaseSolver
             d[i] = temperature[i];
         }
 
-        // Граничные условия (первого рода)
+        // 
         b[0] = 1;
         c[0] = 0;
         d[0] = temperature[0];
@@ -78,7 +77,7 @@ public class ReversedSheme : BaseSolver
         b[nPoints - 1] = 1;
         d[nPoints - 1] = temperature[nPoints - 1];
 
-        // Решаем методом прогонки
+        // 
         newTemperature = ThomasAlgorithm(a, b, c, d, nPoints);
 
         temperature = newTemperature;
@@ -91,7 +90,7 @@ public class ReversedSheme : BaseSolver
     {
         float[] x = new float[n];
 
-        // Прямой ход прогонки
+        // 
         for (int i = 1; i < n; i++)
         {
             float m = a[i] / b[i - 1];
@@ -99,7 +98,7 @@ public class ReversedSheme : BaseSolver
             d[i] = d[i] - m * d[i - 1];
         }
 
-        // Обратный ход прогонки
+        // 
         x[n - 1] = d[n - 1] / b[n - 1];
         for (int i = n - 2; i >= 0; i--)
         {

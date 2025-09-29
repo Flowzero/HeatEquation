@@ -21,13 +21,11 @@ namespace PnMM__Lab1_Main_
         private const float MAX_TEMPERATURE = 100f;
         private const int GRAPH_SPACING = 100;
 
-        // UI элементы
         private NumericUpDown numAlpha, numDx, numDtPercent, numTimerInterval, numFinalPos, numHeatSourcePos, numHeatSourceTemp;
         private Button btnRestart, btnApplyTimer, btnSetHeatSource;
         private Label lblAlpha, lblDx, lblDtPercent, lblTimerInterval, lblFinalPos, lblHeatSourcePos, lblHeatSourceTemp;
         private Panel controlPanel;
 
-        // Параметры теплового источника
         private float heatSourcePosition = 0.4f;
         private float heatSourceTemperature = 100f;
 
@@ -42,7 +40,6 @@ namespace PnMM__Lab1_Main_
             this.Text = "Сравнение явной и неявной схем с расширенным управлением";
             this.DoubleBuffered = true;
 
-            // Подписываемся на событие изменения размера
             this.Resize += Form1_Resize;
         }
 
@@ -57,7 +54,6 @@ namespace PnMM__Lab1_Main_
 
         private void InitializeControls()
         {
-            // Панель для группировки элементов управления
             controlPanel = new Panel()
             {
                 Location = new Point(10, 10),
@@ -69,7 +65,6 @@ namespace PnMM__Lab1_Main_
             int yPos = 15;
             int xPos = 10;
 
-            // Первая строка: основные параметры
             lblAlpha = new Label()
             {
                 Text = "α:",
@@ -155,7 +150,6 @@ namespace PnMM__Lab1_Main_
             };
             xPos += 70;
 
-            // Вторая строка: тепловой источник
             yPos += 30;
             xPos = 10;
 
@@ -211,7 +205,6 @@ namespace PnMM__Lab1_Main_
             };
             xPos += 130;
 
-            // Третья строка: управление анимацией
             yPos += 30;
             xPos = 10;
 
@@ -255,12 +248,10 @@ namespace PnMM__Lab1_Main_
                 BackColor = Color.LightBlue
             };
 
-            // Подписка на события
             btnRestart.Click += BtnRestart_Click;
             btnApplyTimer.Click += BtnApplyTimer_Click;
             btnSetHeatSource.Click += BtnSetHeatSource_Click;
 
-            // Добавляем элементы на панель
             controlPanel.Controls.AddRange(new Control[] {
                 lblAlpha, numAlpha, lblDx, numDx, lblDtPercent, numDtPercent,
                 lblFinalPos, numFinalPos, lblHeatSourcePos, numHeatSourcePos,
@@ -268,7 +259,6 @@ namespace PnMM__Lab1_Main_
                 lblTimerInterval, numTimerInterval, btnApplyTimer, btnRestart
             });
 
-            // Добавляем панель на форму
             this.Controls.Add(controlPanel);
         }
 
@@ -287,7 +277,6 @@ namespace PnMM__Lab1_Main_
                 solver = new DirectSheme(alpha, finalPos, 1f, percent, dx);
                 solver_ = new ReversedSheme(alpha, finalPos, 1f, percent, dx);
 
-                // Устанавливаем тепловой источник
                 SetHeatSource(solver, heatSourcePosition, heatSourceTemperature);
                 SetHeatSource(solver_, heatSourcePosition, heatSourceTemperature);
 
@@ -305,8 +294,6 @@ namespace PnMM__Lab1_Main_
 
         private void SetHeatSource(BaseSolver solver, float position, float temperature)
         {
-            // Используем рефлексию для доступа к protected методу
-            // Или добавим public метод в BaseSolver для установки источника
             var temperatureField = solver.GetType().GetField("temperature",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
@@ -315,7 +302,6 @@ namespace PnMM__Lab1_Main_
                 float[] tempArray = (float[])temperatureField.GetValue(solver);
                 if (tempArray != null)
                 {
-                    // Находим ближайший узел к указанной позиции
                     int index = (int)Math.Round(position / solver.Dx);
                     if (index >= 0 && index < tempArray.Length)
                     {
@@ -348,7 +334,6 @@ namespace PnMM__Lab1_Main_
                 SetHeatSource(solver, heatSourcePosition, heatSourceTemperature);
                 SetHeatSource(solver_, heatSourcePosition, heatSourceTemperature);
 
-                // Обновляем графики
                 GenerateNewData();
                 this.Invalidate();
             }
@@ -444,14 +429,12 @@ namespace PnMM__Lab1_Main_
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             g.Clear(Color.White);
 
-            // Учитываем место под панель управления
             int controlPanelHeight = controlPanel.Height + 20;
             int graphWidth = (this.ClientSize.Width - 2 * MARGIN - GRAPH_SPACING) / 2;
             int graphHeight = this.ClientSize.Height - 2 * MARGIN - controlPanelHeight;
 
             if (graphWidth <= 0 || graphHeight <= 0) return;
 
-            // Рисуем графики
             DrawSingleGraph(g, temperatureData, "Явная схема",
                            MARGIN, MARGIN + controlPanelHeight, graphWidth, graphHeight, Color.Red);
 
@@ -459,7 +442,6 @@ namespace PnMM__Lab1_Main_
                            MARGIN + graphWidth + GRAPH_SPACING, MARGIN + controlPanelHeight,
                            graphWidth, graphHeight, Color.Blue);
 
-            // Рисуем общую легенду
             DrawLegend(g, graphWidth * 2 + GRAPH_SPACING, controlPanelHeight);
         }
 
@@ -468,7 +450,6 @@ namespace PnMM__Lab1_Main_
         {
             if (data.Count < 2) return;
 
-            // Рисуем рамку и сетку
             g.DrawRectangle(new Pen(Color.Gray, 1), xOffset, yOffset, width, height);
 
             Pen axisPen = new Pen(Color.Black, 2);
@@ -484,7 +465,6 @@ namespace PnMM__Lab1_Main_
                 g.DrawLine(gridPen, xOffset, y, xOffset + width, y);
             }
 
-            // Рисуем кривую температуры
             PointF[] points = new PointF[data.Count];
             for (int i = 0; i < data.Count; i++)
             {
@@ -502,7 +482,6 @@ namespace PnMM__Lab1_Main_
                 g.DrawCurve(curvePen, points);
             }
 
-            // Подписи
             Font labelFont = new Font("Arial", 8);
             Font titleFont = new Font("Arial", 10, FontStyle.Bold);
             Brush labelBrush = new SolidBrush(Color.Black);
@@ -536,7 +515,6 @@ namespace PnMM__Lab1_Main_
                             MARGIN + totalWidth / 2 - infoSize.Width / 2, legendY);
             }
 
-            // Легенда схем
             DrawLegendItem(g, "Явная схема", Color.Red, MARGIN, legendY - 25);
             DrawLegendItem(g, "Неявная схема", Color.Blue, MARGIN + 120, legendY - 25);
         }

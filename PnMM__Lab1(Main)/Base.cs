@@ -7,17 +7,19 @@ using System.Diagnostics;
 
 public abstract class BaseSolver
 {
-    protected readonly float alpha;          // коэффицент теплопроводности
-    protected readonly float init_pos = 0;   // начальная позиция
-    protected readonly float final_pos;      // конечная позиция (L)
-    protected readonly float total_time;     // общее время моделирования            
+    protected readonly float alpha;          // coefficient of thermal conductivity
+    protected readonly float init_pos = 0;   // start (initial) position
+    protected readonly float final_pos;      // end position (L)
+    protected readonly float total_time;     // total simulation time            
 
     protected float dx, dt;
-    protected float percent;                 // процент от максимально устойчивого dt_max
-    protected int nPoints;                   // кол-во точек по пространству
-    protected int nTimeSteps;                // кол-во шагов по времени
+    protected float percent;                 // percentage of maximum stable dt_max. 0 < percent < 1
+                                             // See the comments below
 
-    protected float[] temperature;           // слой (совокупность узлов в фиксированный момент времени)
+    protected int nPoints;                   // number of points in the space
+    protected int nTimeSteps;                // number of time steps
+
+    protected float[] temperature;           // layer (a set of nodes at a fixed point in time)
     protected float currentTime;
     protected int stepCount = 0;
 
@@ -36,54 +38,53 @@ public abstract class BaseSolver
         __init__grid();
         __init__temperature();
     }
-
     
     protected virtual void __init__grid()
     {
         nPoints = (int)Math.Ceiling(final_pos / dx);
-                                                              // For DirectSheme:              //     ^                                 ^                                  ^   
-        float dt_max = (dx * dx) / (2 * alpha);               //        dx^2                   // 100 |         ╭●╮                     |                                  |
-        dt = dt_max * percent;                                // dt <= ------                  //     |         │ │                     |                                  |
-        nTimeSteps = (int)Math.Ceiling(total_time / dt) + 1;  //         2a                    //     |         │ │                     |                                  |
-                                                              //                               //     |         │ │                     |                                  |
-        // dt всегда вычисляеься с учетом соблюдения          // The less dt we take, the      //     |         │ │                     |                                  |
-        // условия устойчивости. Если alpha будет нефизично   // better the sheme works.       //     |         │ │                  50 |   ╭●╮         ╭●╮                |         ╭●╮
-        // большим, то dt будет черезвычайно малым            //                               //     |         │ │                     |   │ │         │ │                |         │ │
-                                                              // percent - percentage from     //     |         │ │                     |   │ │         │ │             25 |   ╭●╮   │ │   ╭●╮
-        // Также программа может крашнутся при следующих      // max_dt to get smaller dt      //     |         │ │                     |   │ │         │ │                |   │ │   │ │   │ │
-        // параметрах: (0.0002f, 2f, 1f, 0.25f, 1f)           //                               //     |         │ │                     |   │ │         │ │                |   │ │   │ │   │ │
-        // Это объясняется тем, что для построения графика    //                               //     |         │ │                     |   │ │         │ │                |   │ │   │ │   │ │
-        // нужно как минимум две точки, а не одна:            // DO NOT TAKE dt = dt_max!      //     |         │ │                     |   │ │         │ │                |   │ │   │ │   │ │
-        // nPoints = (int)Math.Ceiling(1f / 1f) = 1           // Otherwise the result will     //     +------------------------------>  +------------------------------>   +------------------------------>
-        //                                                    // be like that or it will lead  //               0.4                         0.2   0.4   0.6                    0.2   0.4   0.6
-        // (0.0002f, 2f, 1f, 0.25f, 1f) -> 0.4 дошло до 20 C° //                               //     step = 0                          step = 1                           step = 2
-        // за 4 сек                                           //                               //
-        // (0.02f, 2f, 1f, 0.25f, 1f) -> 0.4 дошло до 20 C°   // for demo: dx = 0.02, dt = 0.5 // 
-        // за 0.040 сек                                       // dt_max = 0.5, a = 1           //
+                                                              // For DirectSheme:          //     ^                                 ^                                  ^   
+        float dt_max = (dx * dx) / (2 * alpha);               //          dx^2             // 100 |         ╭●╮                     |                                  |
+        dt = dt_max * percent;                                // dt <= ----------          //     |         │ │                     |                                  |
+        nTimeSteps = (int)Math.Ceiling(total_time / dt) + 1;  //         2*alpha           //     |         │ │                     |                                  |
+                                                              //                           //     |         │ │                     |                                  |
+        // dt is always calculated due to stability condition // The less dt we take, the  //     |         │ │                     |                                  |
+        // If alpha is extremely large (which is not possible // better the sheme works.   //     |         │ │                  50 |   ╭●╮         ╭●╮                |         ╭●╮
+        // in the real world, but it is an ideal simulation), //                   dx^2    //     |         │ │                     |   │ │         │ │                |         │ │
+        // then dt will be extremely small and vice versa     // if you take dt = ------   //     |         │ │                     |   │ │         │ │             25 |   ╭●╮   │ │   ╭●╮
+        //                                                    //                    2a     //     |         │ │                     |   │ │         │ │                |   │ │   │ │   │ │
+        //                                                    // the following happens     //     |         │ │                     |   │ │         │ │                |   │ │   │ │   │ │
+        //                                                    //                           //     |         │ │                     |   │ │         │ │                |   │ │   │ │   │ │
+        //                                                    //                           //     |         │ │                     |   │ │         │ │                |   │ │   │ │   │ │
+        //                                                    //                           //     +------------------------------>  +------------------------------>   +------------------------------>
+        // To take smaller dt:                                //                           //               0.4                         0.2   0.4   0.6                    0.2   0.4   0.6
+        // dt = dt_max * percent→0                            //                           //                             step = 0                          step = 1                           step = 2
+
 
         Console.WriteLine($"alpha = {alpha}\ndx = {dx}\ndt = {dt}\nTotal Time = {total_time}\nnPoints = {nPoints}\nnTimePoints = {nTimeSteps}");
     }
 
-
     protected virtual void __init__temperature()
     {
         temperature = new float[nPoints];
-        double heatSource_pos = 0.4;
-        double heatSource_width = dx; 
+        double source_pos = 0.4;
+        double source_width = dx;
 
         for (int i = 0; i < nPoints; i++)
         {
-            float x = i * dx;
-            if (x >= heatSource_pos - heatSource_width / 2 && x <= heatSource_pos + heatSource_width / 2)
+            double x = i * dx;
+            double leftBound = source_pos - source_width / 2;
+            double rightBound = source_pos + source_width / 2;
+
+            if (x >= leftBound - 0.0001 && x <= rightBound + 0.0001)
             {
                 temperature[i] = 100.0f;
-                //Console.WriteLine($"Initial: temperature[{i}] = {temperature[i]}, x = {i * dx}");
             }
             else
             {
                 temperature[i] = 0.0f;
             }
         }
+   
     }
 
     public abstract float[] SolveStep();
